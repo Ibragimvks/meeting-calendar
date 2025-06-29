@@ -29,7 +29,8 @@
       top: 2px;
       left: 2px;
       font-size: 12px;
-      z-index: 1;
+      z-index: 2;
+      color: black;
     }
     .color-box {
       width: 100%;
@@ -37,13 +38,8 @@
       position: absolute;
       top: 0;
       left: 0;
-      display: flex;
-      flex-direction: column;
-      z-index: 0;
-    }
-    .cell {
-      width: 100%;
-      box-sizing: border-box;
+      display: grid;
+      z-index: 1;
     }
     .form {
       margin: 10px auto;
@@ -136,16 +132,33 @@
         const votes = loadVotes(dateKey);
         const colors = votes.map(v => v.color);
 
-        if (colors.length > 0) {
-          const height = 100 / colors.length;
-          colors.forEach(c => {
-            const cell = document.createElement("div");
-            cell.className = "cell";
-            cell.style.background = c;
-            cell.style.height = `${height}%`;
-            box.appendChild(cell);
-          });
-        }
+        const drawSplitColors = (colors) => {
+          const len = colors.length;
+          if (len === 1) {
+            box.style.gridTemplate = "1fr / 1fr";
+            box.innerHTML = `<div style='background:${colors[0]}; grid-row:1; grid-column:1;'></div>`;
+          } else if (len === 2) {
+            box.style.gridTemplate = "1fr / 1fr 1fr";
+            box.innerHTML = `
+              <div style='background:${colors[0]}; grid-column:1;'></div>
+              <div style='background:${colors[1]}; grid-column:2;'></div>`;
+          } else if (len === 3) {
+            box.style.gridTemplate = "1fr 1fr / 1fr 1fr";
+            box.innerHTML = `
+              <div style='background:${colors[0]}; grid-column:1 / span 2; grid-row:1;'></div>
+              <div style='background:${colors[1]}; grid-column:1; grid-row:2;'></div>
+              <div style='background:${colors[2]}; grid-column:2; grid-row:2;'></div>`;
+          } else {
+            box.style.gridTemplate = "1fr 1fr / 1fr 1fr";
+            box.innerHTML = `
+              <div style='background:${colors[0]}; grid-column:2; grid-row:1;'></div>
+              <div style='background:${colors[1]}; grid-column:1; grid-row:1;'></div>
+              <div style='background:${colors[2]}; grid-column:1; grid-row:2;'></div>
+              <div style='background:${colors[3]}; grid-column:2; grid-row:2;'></div>`;
+          }
+        };
+
+        if (colors.length > 0) drawSplitColors(colors.slice(0, 4));
 
         dayEl.appendChild(box);
         dayEl.onclick = () => {
