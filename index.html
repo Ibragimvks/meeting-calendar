@@ -1,25 +1,56 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Календарь встреч</title>
-  <link rel="stylesheet" href="styles.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Календарь Доступности</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Календарь встреч</h1>
-  <div class="month-controls">
-    <button id="prevMonth">Предыдущий</button>
-    <span id="monthYear"></span>
-    <button id="nextMonth">Следующий</button>
-  </div>
-  <div id="calendar"></div>
+    <div class="calendar-container">
+        <div class="calendar-header">
+            <button id="prevMonth">Предыдущий</button>
+            <h2 id="monthYear"></h2>
+            <button id="nextMonth">Следующий</button>
+        </div>
+        <div class="calendar-grid">
+            <div class="day-name">Пн</div>
+            <div class="day-name">Вт</div>
+            <div class="day-name">Ср</div>
+            <div class="day-name">Чт</div>
+            <div class="day-name">Пт</div>
+            <div class="day-name">Сб</div>
+            <div class="day-name">Вс</div>
+        </div>
+        <div id="calendarDays" class="calendar-grid">
+            </div>
+    </div>
 
-  <div id="popup" class="hidden">
-    <div id="popupContent"></div>
-    <button id="closePopup">Закрыть</button>
-  </div>
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h3>Добавить/Редактировать Доступность</h3>
+            <div id="selectedDateDisplay"></div>
+            <label for="userName">Имя:</label>
+            <input type="text" id="userName" required>
 
-  <script src="script.js"></script>
+            <label for="userStatus">Статус:</label>
+            <select id="userStatus">
+                <option value="свободен">Свободен</option>
+                <option value="занят">Занят</option>
+            </select>
+
+            <label for="userColor">Цвет:</label>
+            <input type="color" id="userColor" value="#00FF00">
+
+            <button id="saveEntry">Сохранить</button>
+            <div id="entriesList">
+                <h4>Текущие записи:</h4>
+                <ul id="currentEntries"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
