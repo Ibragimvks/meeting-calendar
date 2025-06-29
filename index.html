@@ -1,51 +1,111 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>Календарь занятости</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Календарь встреч</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet"/>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: #f0f0f0;
-      padding: 10px;
-    }
-    h2 {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f7f7f7;
       color: #333;
     }
-    button {
-      padding: 10px 15px;
-      margin: 5px;
-      font-size: 16px;
-      border: none;
-      border-radius: 6px;
-      background-color: #0088cc;
-      color: white;
-      cursor: pointer;
+    .container {
+      max-width: 600px;
+      margin: auto;
+      padding: 16px;
     }
-    .free { background-color: #4CAF50; }
-    .busy { background-color: #F44336; }
+    h1 {
+      text-align: center;
+      color: #444;
+    }
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      margin-top: 20px;
+    }
+    .day {
+      padding: 10px;
+      background: white;
+      border: 1px solid #ddd;
+      text-align: center;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .day:hover {
+      background: #e0f0ff;
+    }
+    .free {
+      background-color: #d4edda;
+    }
+    .busy {
+      background-color: #f8d7da;
+    }
   </style>
 </head>
 <body>
-  <h2>Выберите статус на сегодня</h2>
-  <button class="free" onclick="sendStatus('free')">🟢 Свободен</button>
-  <button class="busy" onclick="sendStatus('busy')">🔴 Занят</button>
+  <div class="container">
+    <h1>Календарь встреч</h1>
+    <div id="monthTitle"></div>
+    <div class="calendar" id="calendar"></div>
+  </div>
 
   <script>
-    function sendStatus(status) {
-      const tg = window.Telegram.WebApp;
-      const data = {
-        date: new Date().toLocaleDateString('ru-RU'),
-        status: status
-      };
-      tg.sendData(JSON.stringify(data)); // отправляет данные в бота
-      tg.close();
+    const now = new Date();
+    const calendarEl = document.getElementById("calendar");
+    const monthTitle = document.getElementById("monthTitle");
+
+    const daysOfWeek = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+
+    function renderCalendar(year, month) {
+      calendarEl.innerHTML = "";
+      monthTitle.innerHTML = `<h2>${now.toLocaleString('ru-RU', { month: 'long' })} ${year}</h2>`;
+
+      daysOfWeek.forEach(d => {
+        const el = document.createElement("div");
+        el.className = "day";
+        el.innerText = d;
+        el.style.fontWeight = "bold";
+        el.style.background = "#eee";
+        calendarEl.appendChild(el);
+      });
+
+      const firstDay = new Date(year, month, 1);
+      let dayOffset = firstDay.getDay() - 1;
+      if (dayOffset === -1) dayOffset = 6; // Воскресенье -> в конец
+
+      for (let i = 0; i < dayOffset; i++) {
+        calendarEl.appendChild(document.createElement("div")); // пустышки
+      }
+
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const cell = document.createElement("div");
+        cell.className = "day";
+        cell.innerText = day;
+
+        const dateStr = `${String(day).padStart(2, '0')}.${String(month + 1).padStart(2, '0')}.${year}`;
+
+        // Заглушка: по API можно получить реальный статус
+        // Симулируем случайный статус
+        const isFree = Math.random() > 0.5;
+        if (isFree) cell.classList.add("free");
+        else cell.classList.add("busy");
+
+        cell.onclick = () => {
+          alert(`День ${dateStr} — ${isFree ? "Свободен" : "Занят"}`);
+        };
+
+        calendarEl.appendChild(cell);
+      }
     }
 
-    Telegram.WebApp.ready();
+    renderCalendar(now.getFullYear(), now.getMonth());
   </script>
 </body>
 </html>
