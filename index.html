@@ -40,6 +40,7 @@
       left: 0;
       display: grid;
       z-index: 1;
+      pointer-events: none;
     }
     .form {
       margin: 10px auto;
@@ -109,18 +110,21 @@
       calendar.innerHTML = "";
       const firstDay = new Date(year, month, 1);
       const lastDay = new Date(year, month + 1, 0);
-      const startDay = firstDay.getDay();
+      let startDay = firstDay.getDay();
+      if (startDay === 0) startDay = 7; // Неделя начинается с понедельника
       const daysInMonth = lastDay.getDate();
       monthYear.textContent = `${firstDay.toLocaleString("ru", { month: "long" })} ${year}`;
 
-      for (let i = 0; i < startDay; i++) {
+      // Заполнить пустые ячейки до первого дня месяца
+      for (let i = 1; i < startDay; i++) {
         calendar.appendChild(document.createElement("div"));
       }
 
       for (let day = 1; day <= daysInMonth; day++) {
-        const dateKey = `${year}-${month + 1}-${day}`;
+        const dateKey = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
         const dayEl = document.createElement("div");
         dayEl.className = "day";
+
         const number = document.createElement("div");
         number.className = "day-number";
         number.textContent = day;
@@ -161,17 +165,22 @@
         if (colors.length > 0) drawSplitColors(colors.slice(0, 4));
 
         dayEl.appendChild(box);
+
         dayEl.onclick = () => {
           const name = usernameInput.value.trim();
           const status = statusSelect.value;
           const color = colorSelect.value;
 
-          const votes = loadVotes(dateKey);
-          if (!name || !color) {
-            alert("Введите имя и выберите цвет.");
+          if (!name) {
+            alert("Введите имя.");
+            return;
+          }
+          if (!color) {
+            alert("Выберите цвет.");
             return;
           }
 
+          const votes = loadVotes(dateKey);
           const existing = votes.find(v => v.name === name);
           if (existing) {
             const rusStatus = s => s === "free" ? "Свободен" : "Занят";
