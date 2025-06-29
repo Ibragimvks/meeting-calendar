@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Календарь занятости</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f0f0f0;
+      padding: 10px;
+    }
+    h2 {
+      color: #333;
+    }
+    button {
+      padding: 10px 15px;
+      margin: 5px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      background-color: #0088cc;
+      color: white;
+      cursor: pointer;
+    }
+    .free { background-color: #4CAF50; }
+    .busy { background-color: #F44336; }
+  </style>
+</head>
+<body>
+  <h2>Выберите статус на сегодня</h2>
+  <button class="free" onclick="sendStatus('free')">🟢 Свободен</button>
+  <button class="busy" onclick="sendStatus('busy')">🔴 Занят</button>
+
+  <script>
+    function sendStatus(status) {
+      const tg = window.Telegram.WebApp;
+      const data = {
+        date: new Date().toLocaleDateString('ru-RU'),
+        status: status
+      };
+      tg.sendData(JSON.stringify(data)); // отправляет данные в бота
+      tg.close();
+    }
+
+    Telegram.WebApp.ready();
+  </script>
+</body>
+</html>
