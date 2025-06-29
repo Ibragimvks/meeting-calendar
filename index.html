@@ -22,12 +22,14 @@
       height: 80px;
       position: relative;
       cursor: pointer;
+      overflow: hidden;
     }
     .day-number {
       position: absolute;
       top: 2px;
       left: 2px;
       font-size: 12px;
+      z-index: 1;
     }
     .color-box {
       width: 100%;
@@ -36,14 +38,11 @@
       top: 0;
       left: 0;
       display: flex;
-      flex-wrap: wrap;
-      align-items: stretch;
-      justify-content: stretch;
+      flex-direction: column;
+      z-index: 0;
     }
     .cell {
-      flex: 1 0 auto;
-      min-width: 50%;
-      min-height: 50%;
+      width: 100%;
       box-sizing: border-box;
     }
     .form {
@@ -137,58 +136,13 @@
         const votes = loadVotes(dateKey);
         const colors = votes.map(v => v.color);
 
-        if (colors.length === 1) {
-          const cell = document.createElement("div");
-          cell.className = "cell";
-          cell.style.background = colors[0];
-          cell.style.width = "100%";
-          cell.style.height = "100%";
-          box.appendChild(cell);
-        } else if (colors.length === 2) {
+        if (colors.length > 0) {
+          const height = 100 / colors.length;
           colors.forEach(c => {
             const cell = document.createElement("div");
             cell.className = "cell";
             cell.style.background = c;
-            cell.style.width = "50%";
-            cell.style.height = "100%";
-            box.appendChild(cell);
-          });
-        } else if (colors.length === 3) {
-          const first = document.createElement("div");
-          first.className = "cell";
-          first.style.background = colors[0];
-          first.style.width = "50%";
-          first.style.height = "100%";
-          box.appendChild(first);
-
-          const second = document.createElement("div");
-          second.className = "cell";
-          second.style.background = colors[1];
-          second.style.width = "50%";
-          second.style.height = "50%";
-          box.appendChild(second);
-
-          const third = document.createElement("div");
-          third.className = "cell";
-          third.style.background = colors[2];
-          third.style.width = "50%";
-          third.style.height = "50%";
-          box.appendChild(third);
-        } else if (colors.length === 4) {
-          colors.forEach((c, i) => {
-            const cell = document.createElement("div");
-            cell.className = "cell";
-            cell.style.background = c;
-            box.appendChild(cell);
-          });
-        } else if (colors.length > 4) {
-          const partHeight = 100 / colors.length;
-          colors.forEach(c => {
-            const cell = document.createElement("div");
-            cell.className = "cell";
-            cell.style.background = c;
-            cell.style.width = "100%";
-            cell.style.height = `${partHeight}%`;
+            cell.style.height = `${height}%`;
             box.appendChild(cell);
           });
         }
@@ -198,16 +152,21 @@
           const name = usernameInput.value.trim();
           const status = statusSelect.value;
           const color = colorSelect.value;
+
+          const votes = loadVotes(dateKey);
           if (!name || !color) {
             alert("Введите имя и выберите цвет.");
             return;
           }
-          const votes = loadVotes(dateKey);
-          if (votes.find(v => v.name === name)) {
-            const list = votes.map(v => `${v.name} — ${v.status}`).join("\n");
+
+          const existing = votes.find(v => v.name === name);
+          if (existing) {
+            const rusStatus = s => s === "free" ? "Свободен" : "Занят";
+            const list = votes.map(v => `${v.name} — ${rusStatus(v.status)} — ${v.color}`).join("\n");
             alert("Уже проголосовали:\n" + list);
             return;
           }
+
           saveVote(dateKey, { name, status, color });
           drawCalendar(year, month);
         };
