@@ -1,237 +1,227 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Календарь встреч</title>
   <style>
     body {
-      font-family: sans-serif;
+      font-family: Arial, sans-serif;
       text-align: center;
-      padding: 20px;
+      margin: 0;
+      padding: 0;
     }
-    table {
-      width: 100%;
-      max-width: 600px;
-      margin: auto;
-      border-collapse: collapse;
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+      margin: 20px;
     }
-    th, td {
-      border: 1px solid #aaa;
-      width: 14.28%;
+    .day {
+      border: 1px solid #ccc;
       height: 80px;
       position: relative;
+      cursor: pointer;
     }
-    .color-segment {
+    .day-number {
       position: absolute;
-      opacity: 0.5;
-      pointer-events: none;
+      top: 2px;
+      left: 2px;
+      font-size: 12px;
     }
-    .form-container {
-      margin-top: 20px;
-      display: none;
+    .color-box {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: stretch;
+      justify-content: stretch;
     }
-    .form-container input, select, button {
-      margin: 5px;
+    .cell {
+      flex: 1 0 auto;
+      min-width: 50%;
+      min-height: 50%;
+      box-sizing: border-box;
+    }
+    .form {
+      margin: 10px auto;
+      display: flex;
+      flex-direction: column;
+      max-width: 300px;
+    }
+    select, input[type="text"] {
+      margin-bottom: 10px;
+      padding: 5px;
+    }
+    .month-controls {
+      margin: 10px;
     }
   </style>
 </head>
 <body>
   <h1>Календарь встреч</h1>
-  <div>
-    <button onclick="changeMonth(-1)">◀</button>
+  <div class="month-controls">
+    <button onclick="changeMonth(-1)">Предыдущий</button>
     <span id="monthYear"></span>
-    <button onclick="changeMonth(1)">▶</button>
+    <button onclick="changeMonth(1)">Следующий</button>
   </div>
-  <table id="calendar"></table>
-
-  <div class="form-container" id="form">
-    <h3 id="selectedDate"></h3>
-    <input type="text" id="name" placeholder="Ваше имя">
+  <div class="calendar" id="calendar"></div>
+  <div class="form">
+    <input type="text" id="username" placeholder="Ваше имя" />
     <select id="status">
-      <option value="busy">Занят</option>
       <option value="free">Свободен</option>
+      <option value="busy">Занят</option>
     </select>
     <select id="color">
       <option value="red">Красный</option>
       <option value="blue">Синий</option>
-      <option value="green">Зеленый</option>
-      <option value="orange">Оранжевый</option>
+      <option value="green">Зелёный</option>
       <option value="purple">Фиолетовый</option>
+      <option value="orange">Оранжевый</option>
+      <option value="pink">Розовый</option>
+      <option value="cyan">Голубой</option>
+      <option value="yellow">Жёлтый</option>
+      <option value="brown">Коричневый</option>
+      <option value="gray">Серый</option>
     </select>
-    <button onclick="submitEntry()">Сохранить</button>
-    <div id="entriesList"></div>
   </div>
 
   <script>
-    const calendarEl = document.getElementById('calendar');
-    const currentMonthEl = document.getElementById('monthYear');
-    const form = document.getElementById('form');
-    const selectedDateEl = document.getElementById('selectedDate');
-    const nameInput = document.getElementById('name');
-    const statusInput = document.getElementById('status');
-    const colorInput = document.getElementById('color');
-    const entriesList = document.getElementById('entriesList');
+    const calendar = document.getElementById("calendar");
+    const monthYear = document.getElementById("monthYear");
+    const usernameInput = document.getElementById("username");
+    const statusSelect = document.getElementById("status");
+    const colorSelect = document.getElementById("color");
 
     let currentDate = new Date();
-    let currentYear = currentDate.getFullYear();
-    let currentMonth = currentDate.getMonth();
-    let selectedDate = null;
 
-    const entries = JSON.parse(localStorage.getItem('calendarEntries') || '{}');
-
-    function formatDate(year, month, day) {
-      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    function loadVotes(dateKey) {
+      return JSON.parse(localStorage.getItem(dateKey) || "[]");
     }
 
-    function renderCalendar(year, month) {
-      currentMonthEl.textContent = new Date(year, month).toLocaleString('ru-RU', { month: 'long', year: 'numeric' });
+    function saveVote(dateKey, vote) {
+      const votes = loadVotes(dateKey);
+      const existing = votes.find(v => v.name === vote.name);
+      if (existing) return;
+      votes.push(vote);
+      localStorage.setItem(dateKey, JSON.stringify(votes));
+    }
 
-      const firstDay = new Date(year, month, 1).getDay();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const startDay = firstDay === 0 ? 7 : firstDay;
+    function drawCalendar(year, month) {
+      calendar.innerHTML = "";
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      const startDay = firstDay.getDay();
+      const daysInMonth = lastDay.getDate();
+      monthYear.textContent = `${firstDay.toLocaleString("ru", { month: "long" })} ${year}`;
 
-      calendarEl.innerHTML = '<tr><th>Пн</th><th>Вт</th><th>Ср</th><th>Чт</th><th>Пт</th><th>Сб</th><th>Вс</th></tr>';
-      let row = document.createElement('tr');
-
-      for (let i = 1; i < startDay; i++) {
-        row.appendChild(document.createElement('td'));
+      for (let i = 0; i < startDay; i++) {
+        calendar.appendChild(document.createElement("div"));
       }
 
       for (let day = 1; day <= daysInMonth; day++) {
-        if ((startDay + day - 2) % 7 === 0 && day !== 1) {
-          calendarEl.appendChild(row);
-          row = document.createElement('tr');
+        const dateKey = `${year}-${month + 1}-${day}`;
+        const dayEl = document.createElement("div");
+        dayEl.className = "day";
+        const number = document.createElement("div");
+        number.className = "day-number";
+        number.textContent = day;
+        dayEl.appendChild(number);
+
+        const box = document.createElement("div");
+        box.className = "color-box";
+
+        const votes = loadVotes(dateKey);
+        const colors = votes.map(v => v.color);
+
+        if (colors.length === 1) {
+          const cell = document.createElement("div");
+          cell.className = "cell";
+          cell.style.background = colors[0];
+          cell.style.width = "100%";
+          cell.style.height = "100%";
+          box.appendChild(cell);
+        } else if (colors.length === 2) {
+          colors.forEach(c => {
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            cell.style.background = c;
+            cell.style.width = "50%";
+            cell.style.height = "100%";
+            box.appendChild(cell);
+          });
+        } else if (colors.length === 3) {
+          const first = document.createElement("div");
+          first.className = "cell";
+          first.style.background = colors[0];
+          first.style.width = "50%";
+          first.style.height = "100%";
+          box.appendChild(first);
+
+          const second = document.createElement("div");
+          second.className = "cell";
+          second.style.background = colors[1];
+          second.style.width = "50%";
+          second.style.height = "50%";
+          box.appendChild(second);
+
+          const third = document.createElement("div");
+          third.className = "cell";
+          third.style.background = colors[2];
+          third.style.width = "50%";
+          third.style.height = "50%";
+          box.appendChild(third);
+        } else if (colors.length === 4) {
+          colors.forEach((c, i) => {
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            cell.style.background = c;
+            box.appendChild(cell);
+          });
+        } else if (colors.length > 4) {
+          const partHeight = 100 / colors.length;
+          colors.forEach(c => {
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            cell.style.background = c;
+            cell.style.width = "100%";
+            cell.style.height = `${partHeight}%`;
+            box.appendChild(cell);
+          });
         }
 
-        let cell = document.createElement('td');
-        cell.textContent = day;
-        let dateStr = formatDate(year, month + 1, day);
-        cell.dataset.date = dateStr;
-        cell.style.position = 'relative';
-        cell.innerHTML = day;
-
-        if (entries[dateStr]) {
-          const marks = entries[dateStr];
-          const count = marks.length;
-
-          if (count === 1) {
-            const div = document.createElement('div');
-            div.className = 'color-segment';
-            div.style.backgroundColor = marks[0].color;
-            div.style.top = '0';
-            div.style.left = '0';
-            div.style.width = '100%';
-            div.style.height = '100%';
-            cell.appendChild(div);
-          } else if (count === 2) {
-            for (let i = 0; i < 2; i++) {
-              const div = document.createElement('div');
-              div.className = 'color-segment';
-              div.style.backgroundColor = marks[i].color;
-              div.style.top = '0';
-              div.style.left = `${i * 50}%`;
-              div.style.width = '50%';
-              div.style.height = '100%';
-              cell.appendChild(div);
-            }
-          } else if (count === 3) {
-            const div1 = document.createElement('div');
-            div1.className = 'color-segment';
-            div1.style.backgroundColor = marks[0].color;
-            div1.style.top = '0';
-            div1.style.left = '0';
-            div1.style.width = '50%';
-            div1.style.height = '100%';
-            cell.appendChild(div1);
-
-            const div2 = document.createElement('div');
-            div2.className = 'color-segment';
-            div2.style.backgroundColor = marks[1].color;
-            div2.style.top = '0';
-            div2.style.left = '50%';
-            div2.style.width = '50%';
-            div2.style.height = '50%';
-            cell.appendChild(div2);
-
-            const div3 = document.createElement('div');
-            div3.className = 'color-segment';
-            div3.style.backgroundColor = marks[2].color;
-            div3.style.top = '50%';
-            div3.style.left = '50%';
-            div3.style.width = '50%';
-            div3.style.height = '50%';
-            cell.appendChild(div3);
-          } else if (count >= 4) {
-            const positions = [
-              { top: '0', left: '50%' },
-              { top: '0', left: '0' },
-              { top: '50%', left: '0' },
-              { top: '50%', left: '50%' }
-            ];
-            for (let i = 0; i < 4; i++) {
-              const div = document.createElement('div');
-              div.className = 'color-segment';
-              div.style.backgroundColor = marks[i].color;
-              div.style.top = positions[i].top;
-              div.style.left = positions[i].left;
-              div.style.width = '50%';
-              div.style.height = '50%';
-              cell.appendChild(div);
-            }
+        dayEl.appendChild(box);
+        dayEl.onclick = () => {
+          const name = usernameInput.value.trim();
+          const status = statusSelect.value;
+          const color = colorSelect.value;
+          if (!name || !color) {
+            alert("Введите имя и выберите цвет.");
+            return;
           }
-        }
+          const votes = loadVotes(dateKey);
+          if (votes.find(v => v.name === name)) {
+            const list = votes.map(v => `${v.name} — ${v.status}`).join("\n");
+            alert("Уже проголосовали:\n" + list);
+            return;
+          }
+          saveVote(dateKey, { name, status, color });
+          drawCalendar(year, month);
+        };
 
-        cell.addEventListener('click', () => onDayClick(dateStr));
-        row.appendChild(cell);
+        calendar.appendChild(dayEl);
       }
-
-      while (row.children.length < 7) {
-        row.appendChild(document.createElement('td'));
-      }
-      calendarEl.appendChild(row);
     }
 
-    function changeMonth(offset) {
-      currentMonth += offset;
-      if (currentMonth > 11) {
-        currentMonth = 0;
-        currentYear++;
-      } else if (currentMonth < 0) {
-        currentMonth = 11;
-        currentYear--;
-      }
-      renderCalendar(currentYear, currentMonth);
+    function changeMonth(delta) {
+      currentDate.setMonth(currentDate.getMonth() + delta);
+      drawCalendar(currentDate.getFullYear(), currentDate.getMonth());
     }
 
-    function onDayClick(dateStr) {
-      selectedDate = dateStr;
-      selectedDateEl.textContent = `Дата: ${dateStr}`;
-      form.style.display = 'block';
-      renderEntriesList();
-    }
-
-    function renderEntriesList() {
-      const list = entries[selectedDate] || [];
-      entriesList.innerHTML = list.map(e => `<p>${e.name}: ${e.status}</p>`).join('');
-    }
-
-    function submitEntry() {
-      const name = nameInput.value.trim();
-      const status = statusInput.value;
-      const color = colorInput.value;
-      if (!name || !status || !color) return;
-
-      if (!entries[selectedDate]) entries[selectedDate] = [];
-
-      if (entries[selectedDate].some(e => e.name === name)) return;
-
-      entries[selectedDate].push({ name, status, color });
-      localStorage.setItem('calendarEntries', JSON.stringify(entries));
-      renderCalendar(currentYear, currentMonth);
-      renderEntriesList();
-    }
-
-    renderCalendar(currentYear, currentMonth);
+    drawCalendar(currentDate.getFullYear(), currentDate.getMonth());
   </script>
 </body>
 </html>
