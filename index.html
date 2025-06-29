@@ -2,109 +2,280 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Календарь встреч</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Интерактивный Календарь Встреч</title>
   <style>
     body {
-      font-family: 'Roboto', sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #f7f7f7;
-      color: #333;
-    }
-    .container {
+      font-family: Arial, sans-serif;
+      margin: 20px;
       max-width: 600px;
-      margin: auto;
-      padding: 16px;
+      margin-left: auto;
+      margin-right: auto;
     }
     h1 {
       text-align: center;
-      color: #444;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 10px;
+      gap: 10px;
+    }
+    button {
+      padding: 6px 12px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #monthYear {
+      font-weight: bold;
+      font-size: 18px;
+      align-self: center;
     }
     .calendar {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
       gap: 4px;
-      margin-top: 20px;
+    }
+    .day, .header {
+      padding: 10px 5px;
+      border: 1px solid #ccc;
+      text-align: center;
+      user-select: none;
+    }
+    .header {
+      background: #eee;
+      font-weight: bold;
     }
     .day {
-      padding: 10px;
       background: white;
-      border: 1px solid #ddd;
-      text-align: center;
+      position: relative;
       cursor: pointer;
-      transition: 0.2s;
+      height: 70px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
     }
-    .day:hover {
-      background: #e0f0ff;
+    .day.disabled {
+      color: #bbb;
+      cursor: default;
+      background: #f9f9f9;
     }
-    .free {
-      background-color: #d4edda;
+    /* Контейнер для цветных частей */
+    .color-container {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 14px;
+      display: flex;
+      border-top: 1px solid #ccc;
+      border-radius: 0 0 4px 4px;
+      overflow: hidden;
     }
-    .busy {
-      background-color: #f8d7da;
+    .color-part {
+      flex-grow: 1;
+      height: 100%;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Календарь встреч</h1>
-    <div id="monthTitle"></div>
-    <div class="calendar" id="calendar"></div>
+  <h1>Интерактивный Календарь Встреч</h1>
+  <div class="controls">
+    <button id="prevMonth">&lt; Назад</button>
+    <div id="monthYear">Месяц Год</div>
+    <button id="nextMonth">Вперед &gt;</button>
   </div>
+  <div class="calendar" id="calendar"></div>
 
   <script>
-    const now = new Date();
     const calendarEl = document.getElementById("calendar");
-    const monthTitle = document.getElementById("monthTitle");
+    const monthYearEl = document.getElementById("monthYear");
+    const prevBtn = document.getElementById("prevMonth");
+    const nextBtn = document.getElementById("nextMonth");
 
+    // Хранение данных по дням: { "YYYY-MM-DD": [ {name, busy, color}, ... ] }
+    const dayData = {};
+
+    // Дни недели по-русски, начинаем с понедельника
     const daysOfWeek = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
-    function renderCalendar(year, month) {
-      calendarEl.innerHTML = "";
-      monthTitle.innerHTML = `<h2>${now.toLocaleString('ru-RU', { month: 'long' })} ${year}</h2>`;
+    let currentYear, currentMonth;
 
+    function formatDate(year, month, day) {
+      return `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    }
+
+    function renderCalendar(year, month) {
+      currentYear = year;
+      currentMonth = month;
+
+      calendarEl.innerHTML = "";
+
+      // Заголовки дней недели
       daysOfWeek.forEach(d => {
-        const el = document.createElement("div");
-        el.className = "day";
-        el.innerText = d;
-        el.style.fontWeight = "bold";
-        el.style.background = "#eee";
-        calendarEl.appendChild(el);
+        const header = document.createElement("div");
+        header.classList.add("header");
+        header.innerText = d;
+        calendarEl.appendChild(header);
       });
 
-      const firstDay = new Date(year, month, 1);
-      let dayOffset = firstDay.getDay() - 1;
-      if (dayOffset === -1) dayOffset = 6; // Воскресенье -> в конец
+      // Первый день месяца (число 1)
+      const firstDayDate = new Date(year, month, 1);
+      // День недели первого дня (0 - воскресенье, 1 - понедельник ... 6 - суббота)
+      // Сдвигаем чтобы понедельник был 0
+      let startDay = firstDayDate.getDay() - 1;
+      if (startDay < 0) startDay = 6;
 
-      for (let i = 0; i < dayOffset; i++) {
-        calendarEl.appendChild(document.createElement("div")); // пустышки
-      }
-
+      // Количество дней в месяце
       const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-      for (let day = 1; day <= daysInMonth; day++) {
-        const cell = document.createElement("div");
-        cell.className = "day";
-        cell.innerText = day;
+      // Добавляем пустые ячейки перед первым днем
+      for(let i = 0; i < startDay; i++) {
+        const emptyCell = document.createElement("div");
+        emptyCell.classList.add("day", "disabled");
+        calendarEl.appendChild(emptyCell);
+      }
 
-        const dateStr = `${String(day).padStart(2, '0')}.${String(month + 1).padStart(2, '0')}.${year}`;
+      // Рисуем дни
+      for(let day=1; day <= daysInMonth; day++) {
+        const dayCell = document.createElement("div");
+        dayCell.classList.add("day");
+        dayCell.innerHTML = `<div>${day}</div>`;
+        const key = formatDate(year, month, day);
 
-        // Заглушка: по API можно получить реальный статус
-        // Симулируем случайный статус
-        const isFree = Math.random() > 0.5;
-        if (isFree) cell.classList.add("free");
-        else cell.classList.add("busy");
+        // Если для этого дня есть записи - отобразим цвета
+        if(dayData[key]) {
+          addColorStripes(dayCell, dayData[key]);
+        }
 
-        cell.onclick = () => {
-          alert(`День ${dateStr} — ${isFree ? "Свободен" : "Занят"}`);
-        };
+        // Обработчик клика на день
+        dayCell.onclick = () => onDayClick(key, dayCell);
 
-        calendarEl.appendChild(cell);
+        calendarEl.appendChild(dayCell);
+      }
+
+      // Обновляем месяц и год сверху
+      const monthName = new Date(year, month).toLocaleString("ru-RU", {month:"long"});
+      monthYearEl.innerText = `${capitalizeFirstLetter(monthName)} ${year}`;
+    }
+
+    // Добавляем цветные полосы внизу ячейки, по количеству участников
+    function addColorStripes(cell, participants) {
+      // Удалим если есть старый контейнер
+      const old = cell.querySelector(".color-container");
+      if(old) old.remove();
+
+      const container = document.createElement("div");
+      container.className = "color-container";
+
+      participants.forEach(p => {
+        const part = document.createElement("div");
+        part.className = "color-part";
+        part.style.backgroundColor = p.color;
+        container.appendChild(part);
+      });
+
+      cell.appendChild(container);
+    }
+
+    // Обработчик клика на день
+    function onDayClick(dateKey, dayCell) {
+      const participants = dayData[dateKey] || [];
+
+      if(participants.length === 0) {
+        // Если нет записей, открываем ввод
+        openInputDialog(dateKey);
+      } else {
+        // Показываем существующие записи + даем кнопку "Добавить"
+        showParticipantsDialog(dateKey);
       }
     }
 
+    // Окно для ввода новой записи
+    function openInputDialog(dateKey) {
+      const busy = confirm("Отметьте: 'ОК' — занят, 'Отмена' — свободен");
+      const name = prompt("Введите ваше имя:");
+
+      if(!name || name.trim() === "") {
+        alert("Имя обязательно!");
+        return;
+      }
+
+      // Выбор цвета из предопределенных
+      const colors = [
+        "#FF0000", // красный
+        "#800080", // фиолетовый
+        "#0000FF", // синий
+        "#008000", // зеленый
+        "#FFA500", // оранжевый
+        "#FFC0CB", // розовый
+        "#00CED1", // бирюзовый
+      ];
+
+      let color = prompt(
+        `Выберите цвет для отметки (введите число от 1 до ${colors.length}):\n` +
+        colors.map((c, i) => `${i+1}: ${c}`).join("\n")
+      );
+
+      color = parseInt(color);
+      if(!color || color < 1 || color > colors.length) {
+        alert("Неверный выбор цвета. Будет назначен красный.");
+        color = 1;
+      }
+
+      const colorValue = colors[color-1];
+
+      // Добавляем запись
+      if(!dayData[dateKey]) dayData[dateKey] = [];
+      dayData[dateKey].push({name: name.trim(), busy, color: colorValue});
+
+      // Перерисовываем календарь (для обновления цвета)
+      renderCalendar(currentYear, currentMonth);
+    }
+
+    // Показ существующих участников дня
+    function showParticipantsDialog(dateKey) {
+      const participants = dayData[dateKey];
+      let message = `Записи на ${dateKey}:\n\n`;
+      participants.forEach((p, i) => {
+        message += `${i+1}. ${p.name} — ${p.busy ? "Занят" : "Свободен"}\n`;
+      });
+
+      message += `\nНажмите OK, чтобы добавить еще одну запись. Отмена — закрыть.`;
+      if(confirm(message)) {
+        openInputDialog(dateKey);
+      }
+    }
+
+    // Кнопки смены месяца
+    prevBtn.onclick = () => {
+      if(currentMonth === 0) {
+        currentMonth = 11;
+        currentYear--;
+      } else {
+        currentMonth--;
+      }
+      renderCalendar(currentYear, currentMonth);
+    };
+
+    nextBtn.onclick = () => {
+      if(currentMonth === 11) {
+        currentMonth = 0;
+        currentYear++;
+      } else {
+        currentMonth++;
+      }
+      renderCalendar(currentYear, currentMonth);
+    };
+
+    // Помощь с заглавной буквой
+    function capitalizeFirstLetter(string) {
+      return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+
+    // Инициализация с текущей даты
+    const now = new Date();
     renderCalendar(now.getFullYear(), now.getMonth());
   </script>
 </body>
