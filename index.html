@@ -2,101 +2,85 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Календарь с отметками</title>
+  <title>Календарь встреч</title>
   <style>
-    table {
-      border-collapse: collapse;
-      width: 300px;
-      height: 300px;
+    body {
+      font-family: sans-serif;
       text-align: center;
+      padding: 20px;
     }
-    td {
+    table {
+      width: 100%;
+      max-width: 600px;
+      margin: auto;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #aaa;
+      width: 14.28%;
+      height: 80px;
       position: relative;
-      border: 1px solid #ccc;
-      height: 40px;
-      cursor: pointer;
-    }
-    th {
-      background-color: #f0f0f0;
     }
     .color-segment {
       position: absolute;
-      top: 0;
-      bottom: 0;
       opacity: 0.5;
       pointer-events: none;
     }
-    #dayDetails {
+    .form-container {
       margin-top: 20px;
-      border: 1px solid #ccc;
-      padding: 10px;
-      width: 300px;
       display: none;
+    }
+    .form-container input, select, button {
+      margin: 5px;
     }
   </style>
 </head>
 <body>
-
+  <h1>Календарь встреч</h1>
   <div>
-    <button id="prevMonth">← Назад</button>
-    <span id="currentMonth"></span>
-    <button id="nextMonth">Вперёд →</button>
+    <button onclick="changeMonth(-1)">◀</button>
+    <span id="monthYear"></span>
+    <button onclick="changeMonth(1)">▶</button>
   </div>
+  <table id="calendar"></table>
 
-  <table id="calendar">
-    <!-- Календарь будет отрисован JavaScript'ом -->
-  </table>
-
-  <div id="dayDetails">
-    <h3>День: <span id="selectedDate"></span></h3>
-
-    <div>
-      <label>Имя: <input type="text" id="userName"></label>
-    </div>
-    <div>
-      <label>Статус:
-        <select id="status">
-          <option value="free">Свободен</option>
-          <option value="busy">Занят</option>
-        </select>
-      </label>
-    </div>
-    <div>
-      <label>Цвет:
-        <select id="color">
-          <option value="red">Красный</option>
-          <option value="purple">Фиолетовый</option>
-          <option value="green">Зелёный</option>
-          <option value="blue">Синий</option>
-          <option value="orange">Оранжевый</option>
-        </select>
-      </label>
-    </div>
-    <button id="saveEntry">Сохранить</button>
-
-    <h4>Отметки этого дня:</h4>
-    <ul id="entriesList"></ul>
+  <div class="form-container" id="form">
+    <h3 id="selectedDate"></h3>
+    <input type="text" id="name" placeholder="Ваше имя">
+    <select id="status">
+      <option value="busy">Занят</option>
+      <option value="free">Свободен</option>
+    </select>
+    <select id="color">
+      <option value="red">Красный</option>
+      <option value="blue">Синий</option>
+      <option value="green">Зеленый</option>
+      <option value="orange">Оранжевый</option>
+      <option value="purple">Фиолетовый</option>
+    </select>
+    <button onclick="submitEntry()">Сохранить</button>
+    <div id="entriesList"></div>
   </div>
 
   <script>
     const calendarEl = document.getElementById('calendar');
-    const currentMonthEl = document.getElementById('currentMonth');
-    const prevMonthBtn = document.getElementById('prevMonth');
-    const nextMonthBtn = document.getElementById('nextMonth');
-
-    const dayDetailsEl = document.getElementById('dayDetails');
+    const currentMonthEl = document.getElementById('monthYear');
+    const form = document.getElementById('form');
     const selectedDateEl = document.getElementById('selectedDate');
-    const userNameInput = document.getElementById('userName');
-    const statusSelect = document.getElementById('status');
-    const colorSelect = document.getElementById('color');
-    const saveEntryBtn = document.getElementById('saveEntry');
-    const entriesListEl = document.getElementById('entriesList');
+    const nameInput = document.getElementById('name');
+    const statusInput = document.getElementById('status');
+    const colorInput = document.getElementById('color');
+    const entriesList = document.getElementById('entriesList');
 
-    let currentYear, currentMonth;
-    const entries = {}; // ключ: "YYYY-MM-DD", значение: [{name, status, color}]
+    let currentDate = new Date();
+    let currentYear = currentDate.getFullYear();
+    let currentMonth = currentDate.getMonth();
+    let selectedDate = null;
+
+    const entries = JSON.parse(localStorage.getItem('calendarEntries') || '{}');
 
     function formatDate(year, month, day) {
-      return `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     }
 
     function renderCalendar(year, month) {
@@ -123,21 +107,78 @@
         cell.textContent = day;
         let dateStr = formatDate(year, month + 1, day);
         cell.dataset.date = dateStr;
+        cell.style.position = 'relative';
+        cell.innerHTML = day;
 
-        // Отметки
         if (entries[dateStr]) {
           const marks = entries[dateStr];
-          let count = marks.length;
-          marks.forEach((mark, idx) => {
-            const seg = document.createElement('div');
-            seg.className = 'color-segment';
-            seg.style.backgroundColor = mark.color;
-            seg.style.left = `${(idx * 100 / count)}%`;
-            seg.style.width = `${100 / count}%`;
-            cell.appendChild(seg);
-          });
-        } else {
-          cell.style.backgroundColor = 'white';
+          const count = marks.length;
+
+          if (count === 1) {
+            const div = document.createElement('div');
+            div.className = 'color-segment';
+            div.style.backgroundColor = marks[0].color;
+            div.style.top = '0';
+            div.style.left = '0';
+            div.style.width = '100%';
+            div.style.height = '100%';
+            cell.appendChild(div);
+          } else if (count === 2) {
+            for (let i = 0; i < 2; i++) {
+              const div = document.createElement('div');
+              div.className = 'color-segment';
+              div.style.backgroundColor = marks[i].color;
+              div.style.top = '0';
+              div.style.left = `${i * 50}%`;
+              div.style.width = '50%';
+              div.style.height = '100%';
+              cell.appendChild(div);
+            }
+          } else if (count === 3) {
+            const div1 = document.createElement('div');
+            div1.className = 'color-segment';
+            div1.style.backgroundColor = marks[0].color;
+            div1.style.top = '0';
+            div1.style.left = '0';
+            div1.style.width = '50%';
+            div1.style.height = '100%';
+            cell.appendChild(div1);
+
+            const div2 = document.createElement('div');
+            div2.className = 'color-segment';
+            div2.style.backgroundColor = marks[1].color;
+            div2.style.top = '0';
+            div2.style.left = '50%';
+            div2.style.width = '50%';
+            div2.style.height = '50%';
+            cell.appendChild(div2);
+
+            const div3 = document.createElement('div');
+            div3.className = 'color-segment';
+            div3.style.backgroundColor = marks[2].color;
+            div3.style.top = '50%';
+            div3.style.left = '50%';
+            div3.style.width = '50%';
+            div3.style.height = '50%';
+            cell.appendChild(div3);
+          } else if (count >= 4) {
+            const positions = [
+              { top: '0', left: '50%' },
+              { top: '0', left: '0' },
+              { top: '50%', left: '0' },
+              { top: '50%', left: '50%' }
+            ];
+            for (let i = 0; i < 4; i++) {
+              const div = document.createElement('div');
+              div.className = 'color-segment';
+              div.style.backgroundColor = marks[i].color;
+              div.style.top = positions[i].top;
+              div.style.left = positions[i].left;
+              div.style.width = '50%';
+              div.style.height = '50%';
+              cell.appendChild(div);
+            }
+          }
         }
 
         cell.addEventListener('click', () => onDayClick(dateStr));
@@ -150,72 +191,47 @@
       calendarEl.appendChild(row);
     }
 
-    function onDayClick(dateStr) {
-      selectedDateEl.textContent = dateStr;
-      dayDetailsEl.style.display = 'block';
-      userNameInput.value = '';
-      statusSelect.value = 'free';
-      colorSelect.value = 'red';
-      renderEntriesList(dateStr);
-    }
-
-    function renderEntriesList(dateStr) {
-      entriesListEl.innerHTML = '';
-      if (!entries[dateStr] || entries[dateStr].length === 0) {
-        entriesListEl.textContent = 'Нет отметок';
-        return;
-      }
-      entries[dateStr].forEach(entry => {
-        const li = document.createElement('li');
-        li.textContent = `${entry.name} — ${entry.status === 'busy' ? 'Занят' : 'Свободен'} (${entry.color})`;
-        entriesListEl.appendChild(li);
-      });
-    }
-
-    saveEntryBtn.addEventListener('click', () => {
-      const name = userNameInput.value.trim();
-      const status = statusSelect.value;
-      const color = colorSelect.value;
-      const dateStr = selectedDateEl.textContent;
-
-      if (!name) {
-        alert('Введите имя!');
-        return;
-      }
-
-      if (!entries[dateStr]) entries[dateStr] = [];
-      entries[dateStr].push({ name, status, color });
-
-      renderCalendar(currentYear, currentMonth);
-      renderEntriesList(dateStr);
-    });
-
-    prevMonthBtn.addEventListener('click', () => {
-      currentMonth--;
-      if (currentMonth < 0) {
+    function changeMonth(offset) {
+      currentMonth += offset;
+      if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+      } else if (currentMonth < 0) {
         currentMonth = 11;
         currentYear--;
       }
       renderCalendar(currentYear, currentMonth);
-      dayDetailsEl.style.display = 'none';
-    });
+    }
 
-    nextMonthBtn.addEventListener('click', () => {
-      currentMonth++;
-      if (currentMonth > 11) {
-        currentMonth = 0;
-        currentYear++;
-      }
+    function onDayClick(dateStr) {
+      selectedDate = dateStr;
+      selectedDateEl.textContent = `Дата: ${dateStr}`;
+      form.style.display = 'block';
+      renderEntriesList();
+    }
+
+    function renderEntriesList() {
+      const list = entries[selectedDate] || [];
+      entriesList.innerHTML = list.map(e => `<p>${e.name}: ${e.status}</p>`).join('');
+    }
+
+    function submitEntry() {
+      const name = nameInput.value.trim();
+      const status = statusInput.value;
+      const color = colorInput.value;
+      if (!name || !status || !color) return;
+
+      if (!entries[selectedDate]) entries[selectedDate] = [];
+
+      if (entries[selectedDate].some(e => e.name === name)) return;
+
+      entries[selectedDate].push({ name, status, color });
+      localStorage.setItem('calendarEntries', JSON.stringify(entries));
       renderCalendar(currentYear, currentMonth);
-      dayDetailsEl.style.display = 'none';
-    });
+      renderEntriesList();
+    }
 
-    // Инициализация
-    const today = new Date();
-    currentYear = today.getFullYear();
-    currentMonth = today.getMonth();
     renderCalendar(currentYear, currentMonth);
   </script>
-
 </body>
 </html>
