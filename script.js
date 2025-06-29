@@ -14,19 +14,6 @@ const colorsMap = {
   "белый": "#FFFFFF"
 };
 
-// Пример данных для дней (каждый день — массив цветов по-русски)
-const daysData = [
-  ["красный"], // 1 цвет
-  ["синий", "зелёный"], // 2 цвета
-  ["жёлтый", "красный", "синий"], // 3 цвета
-  ["оранжевый", "фиолетовый", "зелёный", "жёлтый"], // 4 цвета
-  ["красный", "синий", "зелёный", "жёлтый", "оранжевый"], // 5 цветов
-  ["фиолетовый", "чёрный", "белый", "красный", "жёлтый", "синий"], // 6 цветов
-  ["зелёный", "оранжевый", "красный", "синий", "жёлтый", "фиолетовый", "чёрный"], // 7 цветов
-  ["красный", "синий", "зелёный", "жёлтый", "оранжевый", "фиолетовый", "чёрный", "белый"] // 8 цветов
-];
-
-// Размер ячейки календаря
 const cellSize = 80;
 
 // Функция создаёт части ячейки с координатами и размерами для раскраски по правилам
@@ -34,24 +21,18 @@ function createCellParts(colors) {
   const parts = [];
   switch (colors.length) {
     case 1:
-      // Один цвет — заливка полностью
       parts.push({color: colors[0], x:0, y:0, w:cellSize, h:cellSize});
       break;
     case 2:
-      // Два цвета — делим ячейку по вертикали пополам
       parts.push({color: colors[0], x:0, y:0, w:cellSize/2, h:cellSize});
       parts.push({color: colors[1], x:cellSize/2, y:0, w:cellSize/2, h:cellSize});
       break;
     case 3:
-      // Три цвета:
-      // 1-й цвет — половина по вертикали слева
       parts.push({color: colors[0], x:0, y:0, w:cellSize/2, h:cellSize});
-      // 2-й и 3-й делят правую половину горизонтально пополам
       parts.push({color: colors[1], x:cellSize/2, y:0, w:cellSize/2, h:cellSize/2});
       parts.push({color: colors[2], x:cellSize/2, y:cellSize/2, w:cellSize/2, h:cellSize/2});
       break;
     case 4:
-      // Четыре цвета — делим ячейку на 4 равных квадрата (плюс)
       const half = cellSize / 2;
       parts.push({color: colors[0], x:0, y:0, w:half, h:half});
       parts.push({color: colors[1], x:half, y:0, w:half, h:half});
@@ -59,25 +40,16 @@ function createCellParts(colors) {
       parts.push({color: colors[3], x:half, y:half, w:half, h:half});
       break;
     case 5:
-      // Пять цветов:
-      // Делим ширину на 3 части (треть, треть, треть)
-      // Первый цвет занимает полностью левую треть (по высоте вся)
       const third = cellSize / 3;
       parts.push({color: colors[0], x:0, y:0, w:third, h:cellSize});
-      // Остальные 4 цвета делятся на правые две трети (2/3 ширины)
-      // Каждая из двух частей (2/3 ширины) делится по вертикали пополам
-      const rightWidth = cellSize - third; // 2/3 ширины
+      const rightWidth = cellSize - third;
       const halfHeight = cellSize / 2;
-      // В правой части создаём 4 части:
       parts.push({color: colors[1], x:third, y:0, w:rightWidth/2, h:halfHeight});
       parts.push({color: colors[2], x:third + rightWidth/2, y:0, w:rightWidth/2, h:halfHeight});
       parts.push({color: colors[3], x:third, y:halfHeight, w:rightWidth/2, h:halfHeight});
       parts.push({color: colors[4], x:third + rightWidth/2, y:halfHeight, w:rightWidth/2, h:halfHeight});
       break;
     case 6:
-      // Шесть цветов:
-      // Делим ширину на 3 равные части
-      // Каждая часть делится по вертикали пополам
       const thirdW = cellSize / 3;
       const halfH = cellSize / 2;
       for (let i=0; i<3; i++) {
@@ -86,23 +58,15 @@ function createCellParts(colors) {
       }
       break;
     case 7:
-      // Семь цветов:
-      // Делим ширину на 4 части
-      // Первая часть занимает весь столбец по высоте
       const quarter = cellSize / 4;
       const halfHeight7 = cellSize / 2;
       parts.push({color: colors[0], x:0, y:0, w:quarter, h:cellSize});
-      // Остальные 6 цветов распределяем по 3 колонкам справа,
-      // в каждой колонке делим по вертикали пополам
       for(let i=1; i<=3; i++) {
         parts.push({color: colors[2*i-1], x:i*quarter, y:0, w:quarter, h:halfHeight7});
         parts.push({color: colors[2*i], x:i*quarter, y:halfHeight7, w:quarter, h:halfHeight7});
       }
       break;
     case 8:
-      // Восемь цветов:
-      // Делим ширину на 4 части
-      // В каждой части делим по вертикали пополам
       const quarterW = cellSize / 4;
       const halfH8 = cellSize / 2;
       for(let i=0; i<4; i++) {
@@ -111,7 +75,6 @@ function createCellParts(colors) {
       }
       break;
     default:
-      // Если больше 8 цветов — отрисовываем первые 8 по схеме для 8
       const qW = cellSize / 4;
       const hH = cellSize / 2;
       for(let i=0; i<8; i++) {
@@ -122,31 +85,48 @@ function createCellParts(colors) {
   return parts;
 }
 
-// Создаём элемент canvas для дня, раскрашиваем согласно цветам, добавляем обработчик клика
-function createDayCell(dayIndex, colors) {
+// Создаём canvas для дня, раскрашиваем согласно цветам, добавляем обработчик клика
+function createDayCell(dayNum, colors) {
   const cell = document.createElement('canvas');
   cell.width = cellSize;
   cell.height = cellSize;
   cell.className = 'day-cell';
   const ctx = cell.getContext('2d');
 
-  const parts = createCellParts(colors);
+  // Белый фон
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, cellSize, cellSize);
 
-  parts.forEach(part => {
-    ctx.fillStyle = colorsMap[part.color] || '#888888';
-    ctx.fillRect(part.x, part.y, part.w, part.h);
-  });
+  // Рисуем раскраску по цветам
+  if(colors && colors.length > 0) {
+    const parts = createCellParts(colors);
+    parts.forEach(part => {
+      ctx.fillStyle = colorsMap[part.color] || '#888888';
+      ctx.fillRect(part.x, part.y, part.w, part.h);
+    });
+  }
+
+  // Добавляем номер дня
+  ctx.fillStyle = "#000000";
+  ctx.font = "16px Arial";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "top";
+  ctx.fillText(dayNum, cellSize - 5, 5);
 
   cell.addEventListener('click', () => {
-    showPopup(colors);
+    if(colors && colors.length > 0) {
+      showPopup(colors, dayNum);
+    } else {
+      showPopup(["нет данных"], dayNum);
+    }
   });
 
   return cell;
 }
 
 // Показываем всплывающее окно с цветами на русском списком
-function showPopup(colors) {
-  popupContent.innerHTML = colors.map(c => `• ${c}`).join('<br>');
+function showPopup(colors, dayNum) {
+  popupContent.innerHTML = `<b>День ${dayNum}</b><br>` + colors.map(c => `• ${c}`).join('<br>');
   popup.classList.remove('hidden');
 }
 
@@ -154,12 +134,51 @@ closePopupBtn.addEventListener('click', () => {
   popup.classList.add('hidden');
 });
 
-// Рендерим календарь: создаём ячейки для всех дней из daysData
+// Функция получает данные по цветам для каждого дня (здесь заглушка, заменить на реальное получение)
+function getColorsForDay(day) {
+  // Здесь должна быть логика получения цветов для конкретного дня, например из базы или API.
+  // Для примера возвращаем рандом 1-4 цвета из списка:
+  const allColors = Object.keys(colorsMap);
+  const count = Math.floor(Math.random() * 5) + 1; // от 1 до 5 цветов
+  const result = [];
+  while(result.length < count) {
+    const col = allColors[Math.floor(Math.random() * allColors.length)];
+    if(!result.includes(col)) result.push(col);
+  }
+  return result;
+}
+
+// Рендерим календарь для текущего месяца
 function renderCalendar() {
-  calendar.innerHTML = ''; // очищаем перед отрисовкой
-  daysData.forEach((colors, index) => {
-    calendar.appendChild(createDayCell(index, colors));
-  });
+  calendar.innerHTML = '';
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const daysInMonth = lastDay.getDate();
+
+  // День недели первого дня (0 = воскресенье, 1 = понедельник ...)
+  let startWeekDay = firstDay.getDay();
+  // Для российского календаря считаем неделю с понедельника: сдвигаем, если воскресенье (0) ставим 6, иначе -1
+  startWeekDay = (startWeekDay === 0) ? 6 : startWeekDay -1;
+
+  // Добавляем пустые ячейки перед первым днем
+  for(let i=0; i<startWeekDay; i++) {
+    const emptyCell = document.createElement('div');
+    emptyCell.className = 'empty-cell';
+    emptyCell.style.width = `${cellSize}px`;
+    emptyCell.style.height = `${cellSize}px`;
+    calendar.appendChild(emptyCell);
+  }
+
+  // Добавляем дни месяца с цветами
+  for(let day=1; day<=daysInMonth; day++) {
+    const colors = getColorsForDay(day);
+    calendar.appendChild(createDayCell(day, colors));
+  }
 }
 
 renderCalendar();
