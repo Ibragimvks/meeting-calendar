@@ -2,15 +2,22 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Календарь с цветами</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Календарь встреч</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <h1>Календарь встреч</h1>
+  <div class="month-controls">
+    <button id="prevMonth">Предыдущий</button>
+    <span id="monthYear"></span>
+    <button id="nextMonth">Следующий</button>
+  </div>
   <div id="calendar"></div>
-  
+
   <div id="popup" class="hidden">
-    <div id="popup-content"></div>
-    <button id="close-popup">Закрыть</button>
+    <div id="popupContent"></div>
+    <button id="closePopup">Закрыть</button>
   </div>
 
   <script src="script.js"></script>
